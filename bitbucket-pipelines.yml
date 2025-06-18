@@ -1,0 +1,45 @@
+image: node:20
+
+pipelines:
+  default:
+    - step:
+        name: Datadog SAST + SBOM
+        caches:
+          - node
+        script:
+          # 1. Set Datadog site (se necessário)
+          - export DD_SITE="datadoghq.com"
+
+          # 2. Install Datadog CI CLI
+          - npm install -g @datadog/datadog-ci
+
+          # 3. Install unzip and curl
+          - apt-get update && apt-get install -y unzip curl
+
+          # ========== STATIC ANALYZER ==========
+          - echo "Downloading Datadog Static Analyzer"
+          - DATADOG_STATIC_ANALYZER_URL=https://github.com/DataDog/datadog-static-analyzer/releases/latest/download/datadog-static-analyzer-x86_64-unknown-linux-gnu.zip
+          - curl -L $DATADOG_STATIC_ANALYZER_URL -o /tmp/ddog-static-analyzer.zip
+          - unzip /tmp/ddog-static-analyzer.zip -d /tmp
+          - mv /tmp/datadog-static-analyzer /usr/local/bin/datadog-static-analyzer
+          - chmod +x /usr/local/bin/datadog-static-analyzer
+
+          # Run Static Code Analysis
+          - datadog-static-analyzer -i . -o /tmp/report.sarif -f sarif
+
+          # Upload Static Analysis Results
+          - datadog-ci sarif upload /tmp/report.sarif
+
+          # ========== SBOM GENERATOR ==========
+          - echo "Downloading Datadog SBOM Generator"
+          - mkdir -p /datadog-sbom-generator
+          - DATADOG_SBOM_GENERATOR_URL=https://github.com/DataDog/datadog-sbom-generator/releases/latest/download/datadog-sbom-generator_linux_amd64.zip
+          - curl -L -o /datadog-sbom-generator/datadog-sbom-generator.zip $DATADOG_SBOM_GENERATOR_URL
+          - unzip /datadog-sbom-generator/datadog-sbom-generator.zip -d /datadog-sbom-generator
+          - chmod 755 /datadog-sbom-generator/datadog-sbom-generator
+
+          # Run SBOM scan
+          - /datadog-sbom-generator/datadog-sbom-generator scan --output=/tmp/sbom.json .
+
+          # Upload SBOM to Datadog
+          - datadog-ci sbom upload /tmp/sbom.json

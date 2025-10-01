@@ -1,4 +1,4 @@
-# Datadog Code Security for Bitbucket
+# Datadog Code Security
 
 Sample file of bitbucket pipeline for code security
 

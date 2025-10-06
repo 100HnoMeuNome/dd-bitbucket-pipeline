@@ -8,7 +8,7 @@ pipelines:
           - node
         script:
           # 1. Set Datadog site (se necessário)
-          - export DD_SITE="us1.datadoghq.com"
+          - export DD_SITE="us5.datadoghq.com"
 
           # 2. Install Datadog CI CLI
           - npm install -g @datadog/datadog-ci
